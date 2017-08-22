@@ -1,0 +1,69 @@
+version: '2'
+services:
+  app:
+    image: slackbot:latest
+    build:
+      context: .
+      args:
+        RAILS_ENV: development
+    volumes:
+      - public_data:/opt/app/public
+      - ./log:/opt/app/log
+      - assets:/usr/app/${APP_NAME}/public/assets
+    environment:
+      SECRET_KEY_BASE: '1bc3093b3635bfc89adceadb54b97666db1707affcc86f1a4c810e16622c65a31c0ad6c9f497fe124f01b45a4d0595183e7cbffd641e8d43d8a07ec0345f6062'
+      DATABASE_URL: 'mysql2://mayapp:myapp@db/myapp_development'
+      REDIS_URL:    'redis://redis:6379'
+    links:
+      - db
+      - redis
+    command: bundle exec rails s
+  db:
+    image: mysql:5.6
+    environment:
+      MYSQL_ROOT_PASSWORD: myapp
+      MYSQL_DATABASE: myapp_development
+      MYSQL_USER: mayapp
+      MYSQL_PASSWORD: myapp
+    volumes:
+      - /var/lib/mysql
+  web:
+    build: containers/nginx
+    volumes:
+      - ./log:/opt/app/log
+      - ./tmp:/opt/app/tmp
+      - public_data:/opt/app/public
+    ports:
+      - "80:80"
+    links:
+      - app
+  worker:
+    build:
+      context: .
+      args:
+        RAILS_ENV: development
+    volumes:
+      - /data
+    environment:
+      RAILS_ENV: development
+      DATABASE_URL: 'mysql2://myapp:myapp@db/myapp_development'
+      REDIS_URL:    'redis://redis:6379'
+    links:
+      - db
+      - redis
+    command: [bundle, exec, sidekiq, -C, containers/app/sidekiq.yml]
+  redis:
+    image: redis:3.0
+    volumes:
+      - /data
+    ports:
+      - "6379"
+volumes:
+  assets:
+    external: false
+  public_data:
+    external:
+      name: public_data_volume
+  data:
+    external:
+      name: data_volume

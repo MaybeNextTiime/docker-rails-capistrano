@@ -1,0 +1,17 @@
+default: &default
+  adapter: mysql2
+  encoding: utf8
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  min_messages: log
+
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+  database: myapp_<%= Rails.env %>
+
+production:
+  <<: *default
+  min_messages: notice
