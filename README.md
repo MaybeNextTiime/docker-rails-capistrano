@@ -341,6 +341,122 @@ Rebuild your app:
 docker-compose build app
 ```
 
+But, currently your app cannot run with Docker. We need install Docker on your server.
+
+## Setup server
+
+In this article, I use AWS EC2 with Ubuntu already installed for my server.
+
+### Connect your AWS Instance via Terminal
+
+First, we need install git.
+
+```
+sudo apt-get update && sudo apt-get -y upgrade
+sudo apt-get install git
+```
+
+Then, 
+
+```
+ssh-keygen -t rsa -C "your-github-email"
+cat ~/.ssh/github.pub
+```
+
+Copy and add new ssh key at github setting.
+Test connection:
+
+```
+ssh -T git@github.com
+```
+
+### Install Docker on Ubuntu
+
+Remember, keep connect your AWS Instance via Terminal.
+
+Install using Ubuntu-managed packages:
+
+```
+sudo apt-get install docker.io
+```
+
+To make the shell easier to use, we need to create a symlink since `/usr/local/bin` is for normal user programs not managed by the distribution package manager. The following command overwrites the link (`/usr/local/bin/docker`):
+
+```
+sudo ln -sf /usr/bin/docker.io /usr/local/bin/docker
+```
+
+To enable tab-completion of Docker commands in BASH, either restart BASH or:
+
+```
+source /etc/bash_completion.d/docker.io
+```
+
+or
+
+```
+source /etc/bash_completion.d/docker
+```
+
+To check if Docker is running:
+
+```
+$ ps aux | grep docker
+```
+
+If we want to run docker as root user, we should add a user (in my case, 'k') to the docker group:
+
+```
+sudo usermod -aG docker k
+```
+
+### Create user deploy
+
+Add new user:
+
+```
+sudo adduser USERNAME
+```
+
+If user has been exist:
+
+```
+sudo passwd USERNAME
+```
+
+Enable password authentication by editing `/etc/ssh/sshd_config`: change `PasswordAuthentication no` to `PasswordAuthentication yes`.
+
+Use command as **root** user. By default, a new user is only in their own group, which is created at the time of account creation, and shares a name with the user. In order to add the user to a new group, we can use the usermod command:
+
+```
+usermod -aG sudo USERNAME
+```
+
+Open:
+
+```
+sudo vi /etc/sudoers
+```
+
+and add:
+
+```
+USERNAME ALL=(ALL:ALL) ALL
+```
+
+then restart:
+
+```
+sudo /etc/init.d/ssh restart
+```
+
+Now, you can connect via Terminal with user and password:
+
+```
+ssh USERNAME@ec2-________.compute-1.amazonaws.com
+USERNAME@ec2-________.compute-1.amazonaws.com's password:
+```
+
 ## Setup Capistrano
 
 Read more at [here](https://github.com/capistrano/capistrano#quick-start).
@@ -425,6 +541,65 @@ cap production deploy:check
 
 It work fine! 
 
-But, currently your app cannot run with Docker. We need install Docker on your server.
+## Deploy step by step with Capistrano
 
-## Setup server
+Deploy new code from master branch:
+
+```
+cap production deploy
+```
+
+
+When it has been successfully, connect server via terminal. 
+
+```
+cd /var/www/mayapp_production/current/
+```
+
+- `/var/www/` has been config at line:
+
+```
+set :deploy_to, -> { "/var/www/#{fetch(:application)}_#{fetch(:stage)}" }
+```
+
+- `mayapp` is **APP_NAME**.
+- `production` : we have been use `cap production deploy`.
+- `current` is folder contains latest source from master branch.
+
+Now, we can using Docker:
+
+```
+docker-compose build
+docker-compose up -d
+```
+
+If first time deploy, we need set up database:
+
+```
+docker-compose run app rails db:create db:migrate db:seed
+```
+
+Or, we have new changes for database:
+
+```
+docker-compose run app rails db:migrate
+```
+
+In case, we have been changed for app, we must rebuild.
+
+```
+docker-compose build app
+```
+
+This app will run at `your-server-ip` with port `80`.
+
+## Add your domain with instance
+
+We will use Cloudflare.
+
+After you register and login your account, add site with your domain, config DNS. We use public ip of instance `52.90.195.71` :
+
+## Config Security Group
+
+Your Security Group of Instance need config same as :
+
