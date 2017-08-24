@@ -12,3 +12,5 @@
 [Step 5 - Deploy step by step with Capistrano](https://github.com/MaybeNextTiime/docker-rails-capistrano/wiki/5.-Deploy-step-by-step-with-Capistrano)
 
 [Step 6 - Add domain and Config Security Group](https://github.com/MaybeNextTiime/docker-rails-capistrano/wiki/6.-Add-domain-and-Config-Security-Group)
+
+[Step 7 - Custom Capistrano tasks with Docker](https://github.com/MaybeNextTiime/docker-rails-capistrano/wiki/7.-Custom-Capistrano-tasks-with-Docker)
